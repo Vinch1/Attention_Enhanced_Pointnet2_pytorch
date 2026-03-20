@@ -14,6 +14,7 @@ import importlib
 from tqdm import tqdm
 import provider
 import numpy as np
+from device_utils import get_device, get_device_name
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
@@ -37,6 +38,7 @@ def parse_args():
     parser.add_argument('--log_dir', type=str, required=True, help='experiment root')
     parser.add_argument('--visual', action='store_true', default=False, help='visualize result [default: False]')
     parser.add_argument('--test_area', type=int, default=5, help='area for testing, option: 1-6 [default: 5]')
+    parser.add_argument('--use_cpu', action='store_true', default=False, help='use cpu mode')
     parser.add_argument('--num_votes', type=int, default=3, help='aggregate segmentation scores with voting [default: 5]')
     return parser.parse_args()
 
@@ -56,8 +58,13 @@ def main(args):
         logger.info(str)
         print(str)
 
+    '''DEVICE SETUP'''
+    device = get_device(use_cpu=args.use_cpu)
+    log_string('Using device: %s' % get_device_name(device))
+
     '''HYPER PARAMETER'''
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    if torch.cuda.is_available():
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     experiment_dir = 'log/sem_seg/' + args.log_dir
     visual_dir = experiment_dir + '/visual/'
     visual_dir = Path(visual_dir)
@@ -87,8 +94,10 @@ def main(args):
     '''MODEL LOADING'''
     model_name = os.listdir(experiment_dir + '/logs')[0].split('.')[0]
     MODEL = importlib.import_module(model_name)
-    classifier = MODEL.get_model(NUM_CLASSES).cuda()
-    checkpoint = torch.load(str(experiment_dir) + '/checkpoints/best_model.pth')
+    classifier = MODEL.get_model(NUM_CLASSES)
+    if device.type != 'cpu':
+        classifier = classifier.to(device)
+    checkpoint = torch.load(str(experiment_dir) + '/checkpoints/best_model.pth', map_location=device)
     classifier.load_state_dict(checkpoint['model_state_dict'])
     classifier = classifier.eval()
 
@@ -136,7 +145,10 @@ def main(args):
                     batch_data[:, :, 3:6] /= 1.0
 
                     torch_data = torch.Tensor(batch_data)
-                    torch_data = torch_data.float().cuda()
+                    if device.type != 'cpu':
+                        torch_data = torch_data.float().to(device)
+                    else:
+                        torch_data = torch_data.float()
                     torch_data = torch_data.transpose(2, 1)
                     seg_pred, _ = classifier(torch_data)
                     batch_pred_label = seg_pred.contiguous().cpu().data.max(2)[1].numpy()

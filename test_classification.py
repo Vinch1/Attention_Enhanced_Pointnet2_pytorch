@@ -11,6 +11,7 @@ import logging
 from tqdm import tqdm
 import sys
 import importlib
+from device_utils import get_device, get_device_name
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
@@ -32,17 +33,19 @@ def parse_args():
     return parser.parse_args()
 
 
-def test(model, loader, num_class=40, vote_num=1):
+def test(model, loader, num_class=40, vote_num=1, device=torch.device('cpu')):
     mean_correct = []
     classifier = model.eval()
     class_acc = np.zeros((num_class, 3))
 
     for j, (points, target) in tqdm(enumerate(loader), total=len(loader)):
-        if not args.use_cpu:
-            points, target = points.cuda(), target.cuda()
+        if device.type != 'cpu':
+            points, target = points.to(device), target.to(device)
 
         points = points.transpose(2, 1)
-        vote_pool = torch.zeros(target.size()[0], num_class).cuda()
+        vote_pool = torch.zeros(target.size()[0], num_class)
+        if device.type != 'cpu':
+            vote_pool = vote_pool.to(device)
 
         for _ in range(vote_num):
             pred, _ = classifier(points)
@@ -68,8 +71,13 @@ def main(args):
         logger.info(str)
         print(str)
 
+    '''DEVICE SETUP'''
+    device = get_device(use_cpu=args.use_cpu)
+    log_string('Using device: %s' % get_device_name(device))
+
     '''HYPER PARAMETER'''
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    if torch.cuda.is_available():
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
     '''CREATE DIR'''
     experiment_dir = 'log/classification/' + args.log_dir
@@ -99,14 +107,14 @@ def main(args):
     model = importlib.import_module(model_name)
 
     classifier = model.get_model(num_class, normal_channel=args.use_normals)
-    if not args.use_cpu:
-        classifier = classifier.cuda()
+    if device.type != 'cpu':
+        classifier = classifier.to(device)
 
-    checkpoint = torch.load(str(experiment_dir) + '/checkpoints/best_model.pth')
+    checkpoint = torch.load(str(experiment_dir) + '/checkpoints/best_model.pth', map_location=device)
     classifier.load_state_dict(checkpoint['model_state_dict'])
 
     with torch.no_grad():
-        instance_acc, class_acc = test(classifier.eval(), testDataLoader, vote_num=args.num_votes, num_class=num_class)
+        instance_acc, class_acc = test(classifier.eval(), testDataLoader, vote_num=args.num_votes, num_class=num_class, device=device)
         log_string('Test Instance Accuracy: %f, Class Accuracy: %f' % (instance_acc, class_acc))
 
 

@@ -33,6 +33,22 @@ The latest codes are tested on Ubuntu 16.04, CUDA10.1, PyTorch 1.6 and Python 3.
 conda install pytorch==1.6.0 cudatoolkit=10.1 -c pytorch
 ```
 
+### macOS Installation (Apple Silicon)
+For macOS with Apple Silicon (M1/M2/M3), PyTorch 2.x automatically uses MPS (Metal Performance Shaders):
+```shell
+# Using uv (recommended)
+uv sync
+
+# Or using pip
+pip install torch numpy tqdm
+```
+
+### CPU-Only Mode
+If you don't have a GPU or want to force CPU mode, use the `--use_cpu` flag:
+```shell
+python train_classification.py --model pointnet_cls --use_cpu
+```
+
 ## Classification (ModelNet10/40)
 ### Data Preparation
 Download alignment **ModelNet** [here](https://shapenet.cs.stanford.edu/media/modelnet40_normal_resampled.zip) and save in `data/modelnet40_normal_resampled/`.
