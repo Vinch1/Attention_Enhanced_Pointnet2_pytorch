@@ -11,6 +11,7 @@ import sys
 import importlib
 from tqdm import tqdm
 import numpy as np
+from device_utils import get_device, get_device_name
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
@@ -27,11 +28,11 @@ for cat in seg_classes.keys():
         seg_label_to_cat[label] = cat
 
 
-def to_categorical(y, num_classes):
+def to_categorical(y, num_classes, device=torch.device('cpu')):
     """ 1-hot encodes a tensor """
     new_y = torch.eye(num_classes)[y.cpu().data.numpy(),]
-    if (y.is_cuda):
-        return new_y.cuda()
+    if device.type != 'cpu':
+        return new_y.to(device)
     return new_y
 
 
@@ -43,6 +44,7 @@ def parse_args():
     parser.add_argument('--num_point', type=int, default=2048, help='point Number')
     parser.add_argument('--log_dir', type=str, required=True, help='experiment root')
     parser.add_argument('--normal', action='store_true', default=False, help='use normals')
+    parser.add_argument('--use_cpu', action='store_true', default=False, help='use cpu mode')
     parser.add_argument('--num_votes', type=int, default=3, help='aggregate segmentation scores with voting')
     return parser.parse_args()
 
@@ -52,8 +54,13 @@ def main(args):
         logger.info(str)
         print(str)
 
+    '''DEVICE SETUP'''
+    device = get_device(use_cpu=args.use_cpu)
+    log_string('Using device: %s' % get_device_name(device))
+
     '''HYPER PARAMETER'''
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    if torch.cuda.is_available():
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     experiment_dir = 'log/part_seg/' + args.log_dir
 
     '''LOG'''
@@ -79,8 +86,10 @@ def main(args):
     '''MODEL LOADING'''
     model_name = os.listdir(experiment_dir + '/logs')[0].split('.')[0]
     MODEL = importlib.import_module(model_name)
-    classifier = MODEL.get_model(num_part, normal_channel=args.normal).cuda()
-    checkpoint = torch.load(str(experiment_dir) + '/checkpoints/best_model.pth')
+    classifier = MODEL.get_model(num_part, normal_channel=args.normal)
+    if device.type != 'cpu':
+        classifier = classifier.to(device)
+    checkpoint = torch.load(str(experiment_dir) + '/checkpoints/best_model.pth', map_location=device)
     classifier.load_state_dict(checkpoint['model_state_dict'])
 
     with torch.no_grad():
@@ -101,12 +110,17 @@ def main(args):
                                                       smoothing=0.9):
             batchsize, num_point, _ = points.size()
             cur_batch_size, NUM_POINT, _ = points.size()
-            points, label, target = points.float().cuda(), label.long().cuda(), target.long().cuda()
+            if device.type != 'cpu':
+                points, label, target = points.float().to(device), label.long().to(device), target.long().to(device)
+            else:
+                points, label, target = points.float(), label.long(), target.long()
             points = points.transpose(2, 1)
-            vote_pool = torch.zeros(target.size()[0], target.size()[1], num_part).cuda()
+            vote_pool = torch.zeros(target.size()[0], target.size()[1], num_part)
+            if device.type != 'cpu':
+                vote_pool = vote_pool.to(device)
 
             for _ in range(args.num_votes):
-                seg_pred, _ = classifier(points, to_categorical(label, num_classes))
+                seg_pred, _ = classifier(points, to_categorical(label, num_classes, device))
                 vote_pool += seg_pred
 
             seg_pred = vote_pool / args.num_votes

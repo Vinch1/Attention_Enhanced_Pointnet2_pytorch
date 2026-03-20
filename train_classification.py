@@ -18,6 +18,7 @@ import argparse
 from pathlib import Path
 from tqdm import tqdm
 from data_utils.ModelNetDataLoader import ModelNetDataLoader
+from device_utils import get_device, get_device_name
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
@@ -49,15 +50,15 @@ def inplace_relu(m):
         m.inplace=True
 
 
-def test(model, loader, num_class=40):
+def test(model, loader, num_class=40, device=torch.device('cpu')):
     mean_correct = []
     class_acc = np.zeros((num_class, 3))
     classifier = model.eval()
 
     for j, (points, target) in tqdm(enumerate(loader), total=len(loader)):
 
-        if not args.use_cpu:
-            points, target = points.cuda(), target.cuda()
+        if device.type != 'cpu':
+            points, target = points.to(device), target.to(device)
 
         points = points.transpose(2, 1)
         pred, _ = classifier(points)
@@ -84,7 +85,8 @@ def main(args):
         print(str)
 
     '''HYPER PARAMETER'''
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    if torch.cuda.is_available():
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
     '''CREATE DIR'''
     timestr = str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
@@ -114,6 +116,10 @@ def main(args):
     log_string('PARAMETER ...')
     log_string(args)
 
+    '''DEVICE SETUP'''
+    device = get_device(use_cpu=args.use_cpu)
+    log_string('Using device: %s' % get_device_name(device))
+
     '''DATA LOADING'''
     log_string('Load dataset ...')
     data_path = 'data/modelnet40_normal_resampled/'
@@ -134,9 +140,9 @@ def main(args):
     criterion = model.get_loss()
     classifier.apply(inplace_relu)
 
-    if not args.use_cpu:
-        classifier = classifier.cuda()
-        criterion = criterion.cuda()
+    if device.type != 'cpu':
+        classifier = classifier.to(device)
+        criterion = criterion.to(device)
 
     try:
         checkpoint = torch.load(str(exp_dir) + '/checkpoints/best_model.pth')
@@ -182,8 +188,8 @@ def main(args):
             points = torch.Tensor(points)
             points = points.transpose(2, 1)
 
-            if not args.use_cpu:
-                points, target = points.cuda(), target.cuda()
+            if device.type != 'cpu':
+                points, target = points.to(device), target.to(device)
 
             pred, trans_feat = classifier(points)
             loss = criterion(pred, target.long(), trans_feat)
@@ -199,7 +205,7 @@ def main(args):
         log_string('Train Instance Accuracy: %f' % train_instance_acc)
 
         with torch.no_grad():
-            instance_acc, class_acc = test(classifier.eval(), testDataLoader, num_class=num_class)
+            instance_acc, class_acc = test(classifier.eval(), testDataLoader, num_class=num_class, device=device)
 
             if (instance_acc >= best_instance_acc):
                 best_instance_acc = instance_acc

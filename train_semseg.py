@@ -16,6 +16,7 @@ from tqdm import tqdm
 import provider
 import numpy as np
 import time
+from device_utils import get_device, get_device_name
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = BASE_DIR
@@ -48,6 +49,7 @@ def parse_args():
     parser.add_argument('--step_size', type=int, default=10, help='Decay step for lr decay [default: every 10 epochs]')
     parser.add_argument('--lr_decay', type=float, default=0.7, help='Decay rate for lr decay [default: 0.7]')
     parser.add_argument('--test_area', type=int, default=5, help='Which area to use for test, option: 1-6 [default: 5]')
+    parser.add_argument('--use_cpu', action='store_true', default=False, help='use cpu mode')
 
     return parser.parse_args()
 
@@ -58,7 +60,8 @@ def main(args):
         print(str)
 
     '''HYPER PARAMETER'''
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    if torch.cuda.is_available():
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
     '''CREATE DIR'''
     timestr = str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
@@ -88,6 +91,10 @@ def main(args):
     log_string('PARAMETER ...')
     log_string(args)
 
+    '''DEVICE SETUP'''
+    device = get_device(use_cpu=args.use_cpu)
+    log_string('Using device: %s' % get_device_name(device))
+
     root = 'data/stanford_indoor3d/'
     NUM_CLASSES = 13
     NUM_POINT = args.npoint
@@ -103,7 +110,9 @@ def main(args):
                                                   worker_init_fn=lambda x: np.random.seed(x + int(time.time())))
     testDataLoader = torch.utils.data.DataLoader(TEST_DATASET, batch_size=BATCH_SIZE, shuffle=False, num_workers=10,
                                                  pin_memory=True, drop_last=True)
-    weights = torch.Tensor(TRAIN_DATASET.labelweights).cuda()
+    weights = torch.Tensor(TRAIN_DATASET.labelweights)
+    if device.type != 'cpu':
+        weights = weights.to(device)
 
     log_string("The number of training data is: %d" % len(TRAIN_DATASET))
     log_string("The number of test data is: %d" % len(TEST_DATASET))
@@ -113,8 +122,11 @@ def main(args):
     shutil.copy('models/%s.py' % args.model, str(experiment_dir))
     shutil.copy('models/pointnet2_utils.py', str(experiment_dir))
 
-    classifier = MODEL.get_model(NUM_CLASSES).cuda()
-    criterion = MODEL.get_loss().cuda()
+    classifier = MODEL.get_model(NUM_CLASSES)
+    criterion = MODEL.get_loss()
+    if device.type != 'cpu':
+        classifier = classifier.to(device)
+        criterion = criterion.to(device)
     classifier.apply(inplace_relu)
 
     def weights_init(m):
@@ -183,7 +195,10 @@ def main(args):
             points = points.data.numpy()
             points[:, :, :3] = provider.rotate_point_cloud_z(points[:, :, :3])
             points = torch.Tensor(points)
-            points, target = points.float().cuda(), target.long().cuda()
+            if device.type != 'cpu':
+                points, target = points.float().to(device), target.long().to(device)
+            else:
+                points, target = points.float(), target.long()
             points = points.transpose(2, 1)
 
             seg_pred, trans_feat = classifier(points)
@@ -231,7 +246,10 @@ def main(args):
             for i, (points, target) in tqdm(enumerate(testDataLoader), total=len(testDataLoader), smoothing=0.9):
                 points = points.data.numpy()
                 points = torch.Tensor(points)
-                points, target = points.float().cuda(), target.long().cuda()
+                if device.type != 'cpu':
+                    points, target = points.float().to(device), target.long().to(device)
+                else:
+                    points, target = points.float(), target.long()
                 points = points.transpose(2, 1)
 
                 seg_pred, trans_feat = classifier(points)
