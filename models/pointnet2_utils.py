@@ -79,7 +79,8 @@ def farthest_point_sample(xyz, npoint):
         centroid = xyz[batch_indices, farthest, :].view(B, 1, 3)
         dist = torch.sum((xyz - centroid) ** 2, -1)
         mask = dist < distance
-        distance[mask] = dist[mask]
+        # Use torch.where to avoid MPS bug with boolean mask indexing
+        distance = torch.where(mask, dist, distance)
         farthest = torch.max(distance, -1)[1]
     return centroids
 
@@ -103,7 +104,9 @@ def query_ball_point(radius, nsample, xyz, new_xyz):
     group_idx = group_idx.sort(dim=-1)[0][:, :, :nsample]
     group_first = group_idx[:, :, 0].view(B, S, 1).repeat([1, 1, nsample])
     mask = group_idx == N
-    group_idx[mask] = group_first[mask]
+    # Use torch.where instead of boolean mask indexing to avoid MPS bug
+    # MPS has issues with tensor[mask] = other[mask] pattern
+    group_idx = torch.where(mask, group_first, group_idx)
     return group_idx
 
 

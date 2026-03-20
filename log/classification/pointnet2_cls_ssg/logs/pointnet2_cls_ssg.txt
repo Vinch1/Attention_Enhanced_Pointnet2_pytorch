@@ -1,0 +1,86 @@
+2026-03-20 15:14:14,518 - Model - INFO - PARAMETER ...
+2026-03-20 15:14:14,518 - Model - INFO - Namespace(use_cpu=False, gpu='0', batch_size=24, model='pointnet2_cls_ssg', num_category=40, epoch=200, learning_rate=0.001, num_point=1024, optimizer='Adam', log_dir='pointnet2_cls_ssg', decay_rate=0.0001, use_normals=False, process_data=False, use_uniform_sample=False)
+2026-03-20 15:14:14,526 - Model - INFO - Using device: Apple Silicon (MPS)
+2026-03-20 15:14:14,526 - Model - INFO - Load dataset ...
+2026-03-20 15:14:14,566 - Model - INFO - No existing model, starting training from scratch...
+2026-03-20 15:14:14,933 - Model - INFO - Start training...
+2026-03-20 15:14:14,933 - Model - INFO - Epoch 1 (1/200):
+2026-03-20 15:15:11,271 - Model - INFO - PARAMETER ...
+2026-03-20 15:15:11,271 - Model - INFO - Namespace(use_cpu=False, gpu='0', batch_size=24, model='pointnet2_cls_ssg', num_category=40, epoch=100, learning_rate=0.001, num_point=1024, optimizer='Adam', log_dir='pointnet2_cls_ssg', decay_rate=0.0001, use_normals=False, process_data=False, use_uniform_sample=False)
+2026-03-20 15:15:11,281 - Model - INFO - Using device: Apple Silicon (MPS)
+2026-03-20 15:15:11,281 - Model - INFO - Load dataset ...
+2026-03-20 15:15:11,321 - Model - INFO - No existing model, starting training from scratch...
+2026-03-20 15:15:11,654 - Model - INFO - Start training...
+2026-03-20 15:15:11,654 - Model - INFO - Epoch 1 (1/100):
+2026-03-20 15:25:53,031 - Model - INFO - Train Instance Accuracy: 0.513008
+2026-03-20 15:28:29,123 - Model - INFO - Test Instance Accuracy: 0.609223, Class Accuracy: 0.479450
+2026-03-20 15:28:29,125 - Model - INFO - Best Instance Accuracy: 0.609223, Class Accuracy: 0.479450
+2026-03-20 15:28:29,126 - Model - INFO - Save model...
+2026-03-20 15:28:29,126 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 15:28:29,270 - Model - INFO - Epoch 2 (2/100):
+2026-03-20 15:39:11,415 - Model - INFO - Train Instance Accuracy: 0.681098
+2026-03-20 15:41:44,496 - Model - INFO - Test Instance Accuracy: 0.523139, Class Accuracy: 0.452789
+2026-03-20 15:41:44,497 - Model - INFO - Best Instance Accuracy: 0.609223, Class Accuracy: 0.479450
+2026-03-20 15:41:44,498 - Model - INFO - Epoch 3 (3/100):
+2026-03-20 15:52:22,457 - Model - INFO - Train Instance Accuracy: 0.728557
+2026-03-20 15:55:00,477 - Model - INFO - Test Instance Accuracy: 0.789159, Class Accuracy: 0.705195
+2026-03-20 15:55:00,479 - Model - INFO - Best Instance Accuracy: 0.789159, Class Accuracy: 0.705195
+2026-03-20 15:55:00,479 - Model - INFO - Save model...
+2026-03-20 15:55:00,479 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 15:55:00,562 - Model - INFO - Epoch 4 (4/100):
+2026-03-20 16:05:45,023 - Model - INFO - Train Instance Accuracy: 0.752846
+2026-03-20 16:08:20,942 - Model - INFO - Test Instance Accuracy: 0.807362, Class Accuracy: 0.732538
+2026-03-20 16:08:20,944 - Model - INFO - Best Instance Accuracy: 0.807362, Class Accuracy: 0.732538
+2026-03-20 16:08:20,944 - Model - INFO - Save model...
+2026-03-20 16:08:20,944 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 16:08:21,074 - Model - INFO - Epoch 5 (5/100):
+2026-03-20 16:19:06,460 - Model - INFO - Train Instance Accuracy: 0.773984
+2026-03-20 16:21:46,415 - Model - INFO - Test Instance Accuracy: 0.843851, Class Accuracy: 0.781202
+2026-03-20 16:21:46,418 - Model - INFO - Best Instance Accuracy: 0.843851, Class Accuracy: 0.781202
+2026-03-20 16:21:46,418 - Model - INFO - Save model...
+2026-03-20 16:21:46,418 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 16:21:46,544 - Model - INFO - Epoch 6 (6/100):
+2026-03-20 16:32:36,355 - Model - INFO - Train Instance Accuracy: 0.794309
+2026-03-20 16:35:16,255 - Model - INFO - Test Instance Accuracy: 0.849838, Class Accuracy: 0.779672
+2026-03-20 16:35:16,257 - Model - INFO - Best Instance Accuracy: 0.849838, Class Accuracy: 0.781202
+2026-03-20 16:35:16,258 - Model - INFO - Save model...
+2026-03-20 16:35:16,258 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 16:35:16,384 - Model - INFO - Epoch 7 (7/100):
+2026-03-20 17:02:17,266 - Model - INFO - PARAMETER ...
+2026-03-20 17:02:17,266 - Model - INFO - Namespace(use_cpu=False, gpu='0', batch_size=24, model='pointnet2_cls_ssg', num_category=40, epoch=100, learning_rate=0.001, num_point=1024, optimizer='Adam', log_dir='pointnet2_cls_ssg', decay_rate=0.0001, use_normals=False, process_data=False, use_uniform_sample=False)
+2026-03-20 17:02:17,307 - Model - INFO - Using device: Apple Silicon (MPS)
+2026-03-20 17:02:17,307 - Model - INFO - Load dataset ...
+2026-03-20 17:02:17,354 - Model - INFO - No existing model, starting training from scratch...
+2026-03-20 17:02:17,772 - Model - INFO - Start training...
+2026-03-20 17:02:17,772 - Model - INFO - Epoch 1 (1/100):
+2026-03-20 17:06:54,760 - Model - INFO - Train Instance Accuracy: 0.524797
+2026-03-20 17:07:59,607 - Model - INFO - Test Instance Accuracy: 0.593770, Class Accuracy: 0.506403
+2026-03-20 17:07:59,609 - Model - INFO - Best Instance Accuracy: 0.593770, Class Accuracy: 0.506403
+2026-03-20 17:07:59,609 - Model - INFO - Save model...
+2026-03-20 17:07:59,609 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 17:07:59,777 - Model - INFO - Epoch 2 (2/100):
+2026-03-20 17:12:32,550 - Model - INFO - Train Instance Accuracy: 0.676931
+2026-03-20 17:13:36,743 - Model - INFO - Test Instance Accuracy: 0.651052, Class Accuracy: 0.604925
+2026-03-20 17:13:36,744 - Model - INFO - Best Instance Accuracy: 0.651052, Class Accuracy: 0.604925
+2026-03-20 17:13:36,744 - Model - INFO - Save model...
+2026-03-20 17:13:36,744 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 17:13:36,895 - Model - INFO - Epoch 3 (3/100):
+2026-03-20 17:18:11,149 - Model - INFO - Train Instance Accuracy: 0.735163
+2026-03-20 17:19:15,488 - Model - INFO - Test Instance Accuracy: 0.791586, Class Accuracy: 0.697943
+2026-03-20 17:19:15,489 - Model - INFO - Best Instance Accuracy: 0.791586, Class Accuracy: 0.697943
+2026-03-20 17:19:15,490 - Model - INFO - Save model...
+2026-03-20 17:19:15,490 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 17:19:15,659 - Model - INFO - Epoch 4 (4/100):
+2026-03-20 17:23:49,409 - Model - INFO - Train Instance Accuracy: 0.763415
+2026-03-20 17:24:54,630 - Model - INFO - Test Instance Accuracy: 0.828155, Class Accuracy: 0.754798
+2026-03-20 17:24:54,631 - Model - INFO - Best Instance Accuracy: 0.828155, Class Accuracy: 0.754798
+2026-03-20 17:24:54,631 - Model - INFO - Save model...
+2026-03-20 17:24:54,632 - Model - INFO - Saving at log/classification/pointnet2_cls_ssg/checkpoints/best_model.pth
+2026-03-20 17:24:54,779 - Model - INFO - Epoch 5 (5/100):
+2026-03-20 17:29:10,304 - Model - INFO - PARAMETER ...
+2026-03-20 17:29:10,304 - Model - INFO - Namespace(use_cpu=False, gpu='0', batch_size=24, model='pointnet2_cls_ssg', num_category=40, epoch=100, learning_rate=0.001, num_point=1024, optimizer='Adam', log_dir='pointnet2_cls_ssg', decay_rate=0.0001, use_normals=False, process_data=False, use_uniform_sample=False)
+2026-03-20 17:29:10,344 - Model - INFO - Using device: Apple Silicon (MPS)
+2026-03-20 17:29:10,344 - Model - INFO - Load dataset ...
+2026-03-20 17:29:10,385 - Model - INFO - No existing model, starting training from scratch...
+2026-03-20 17:29:10,769 - Model - INFO - Start training...
+2026-03-20 17:29:10,769 - Model - INFO - Epoch 1 (1/100):
