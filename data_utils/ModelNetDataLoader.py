@@ -60,16 +60,22 @@ class ModelNetDataLoader(Dataset):
         else:
             self.catfile = os.path.join(self.root, 'modelnet40_shape_names.txt')
 
-        self.cat = [line.rstrip() for line in open(self.catfile)]
+        with open(self.catfile) as file:
+            self.cat = [line.rstrip() for line in file]
         self.classes = dict(zip(self.cat, range(len(self.cat))))
 
         shape_ids = {}
         if self.num_category == 10:
-            shape_ids['train'] = [line.rstrip() for line in open(os.path.join(self.root, 'modelnet10_train.txt'))]
-            shape_ids['test'] = [line.rstrip() for line in open(os.path.join(self.root, 'modelnet10_test.txt'))]
+            train_split = os.path.join(self.root, 'modelnet10_train.txt')
+            test_split = os.path.join(self.root, 'modelnet10_test.txt')
         else:
-            shape_ids['train'] = [line.rstrip() for line in open(os.path.join(self.root, 'modelnet40_train.txt'))]
-            shape_ids['test'] = [line.rstrip() for line in open(os.path.join(self.root, 'modelnet40_test.txt'))]
+            train_split = os.path.join(self.root, 'modelnet40_train.txt')
+            test_split = os.path.join(self.root, 'modelnet40_test.txt')
+
+        with open(train_split) as file:
+            shape_ids['train'] = [line.rstrip() for line in file]
+        with open(test_split) as file:
+            shape_ids['test'] = [line.rstrip() for line in file]
 
         assert (split == 'train' or split == 'test')
         shape_names = ['_'.join(x.split('_')[0:-1]) for x in shape_ids[split]]
