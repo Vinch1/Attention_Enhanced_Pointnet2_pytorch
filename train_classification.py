@@ -7,10 +7,10 @@ import os
 import sys
 import torch
 import numpy as np
+import platform
 
 import datetime
 import logging
-import provider
 import importlib
 import shutil
 import argparse
@@ -41,6 +41,12 @@ def parse_args():
     parser.add_argument('--use_normals', action='store_true', default=False, help='use normals')
     parser.add_argument('--process_data', action='store_true', default=False, help='save data offline')
     parser.add_argument('--use_uniform_sample', action='store_true', default=False, help='use uniform sampiling')
+    parser.add_argument(
+        '--num_workers',
+        type=int,
+        default=0 if platform.system() == 'Darwin' else 2,
+        help='number of dataloader workers',
+    )
     return parser.parse_args()
 
 
@@ -48,6 +54,24 @@ def inplace_relu(m):
     classname = m.__class__.__name__
     if classname.find('ReLU') != -1:
         m.inplace=True
+
+
+def augment_point_cloud(points):
+    batch_size, num_points, _ = points.shape
+
+    for batch_index in range(batch_size):
+        dropout_ratio = torch.rand(1).item() * 0.875
+        drop_mask = torch.rand(num_points) <= dropout_ratio
+        if drop_mask.any():
+            first_point = points[batch_index, 0, :].clone()
+            points[batch_index, drop_mask, :] = first_point
+
+    scales = torch.empty(batch_size, device=points.device, dtype=points.dtype).uniform_(0.8, 1.25)
+    shifts = torch.empty(batch_size, 3, device=points.device, dtype=points.dtype).uniform_(-0.1, 0.1)
+
+    points[:, :, 0:3] = points[:, :, 0:3] * scales.view(-1, 1, 1)
+    points[:, :, 0:3] = points[:, :, 0:3] + shifts.view(-1, 1, 3)
+    return points
 
 
 def test(model, loader, num_class=40, device=torch.device('cpu')):
@@ -88,6 +112,12 @@ def main(args):
     if torch.cuda.is_available():
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
+    if args.num_workers > 0:
+        try:
+            torch.multiprocessing.set_sharing_strategy('file_system')
+        except (AttributeError, RuntimeError):
+            pass
+
     '''CREATE DIR'''
     timestr = str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
     exp_dir = Path('./log/')
@@ -105,7 +135,6 @@ def main(args):
     log_dir.mkdir(exist_ok=True)
 
     '''LOG'''
-    args = parse_args()
     logger = logging.getLogger("Model")
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -126,8 +155,19 @@ def main(args):
 
     train_dataset = ModelNetDataLoader(root=data_path, args=args, split='train', process_data=args.process_data)
     test_dataset = ModelNetDataLoader(root=data_path, args=args, split='test', process_data=args.process_data)
-    trainDataLoader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2, drop_last=True)
-    testDataLoader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2)
+    trainDataLoader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+        drop_last=True,
+    )
+    testDataLoader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+    )
 
     '''MODEL LOADING'''
     num_class = args.num_category
@@ -179,14 +219,10 @@ def main(args):
 
         scheduler.step()
         for batch_id, (points, target) in tqdm(enumerate(trainDataLoader, 0), total=len(trainDataLoader), smoothing=0.9):
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
-            points = points.detach().numpy()
-            points = provider.random_point_dropout(points)
-            points[:, :, 0:3] = provider.random_scale_point_cloud(points[:, :, 0:3])
-            points[:, :, 0:3] = provider.shift_point_cloud(points[:, :, 0:3])
-            points = torch.from_numpy(points)
-            points = points.transpose(2, 1)
+            points = augment_point_cloud(points.float())
+            points = points.transpose(2, 1).contiguous()
 
             if device.type != 'cpu':
                 points, target = points.to(device), target.to(device)
@@ -229,6 +265,9 @@ def main(args):
                 }
                 torch.save(state, savepath)
             global_epoch += 1
+
+        if device.type == 'mps' and hasattr(torch, 'mps'):
+            torch.mps.empty_cache()
 
     logger.info('End of training...')
 
