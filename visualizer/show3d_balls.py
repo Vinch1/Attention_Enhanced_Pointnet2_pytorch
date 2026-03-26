@@ -25,7 +25,7 @@ cv2.namedWindow('show3d')
 cv2.moveWindow('show3d', 0, 0)
 cv2.setMouseCallback('show3d', onmouse)
 
-dll = np.ctypeslib.load_library(os.path.join(BASE_DIR, 'render_balls_so'), '.')
+dll = ct.CDLL(os.path.join(BASE_DIR, 'render_balls_so.so'))
 
 
 def showpoints(xyz, c_gt=None, c_pred=None, waittime=0, showrot=False, magnifyBlue=0, freezerot=False,
@@ -166,59 +166,44 @@ def showpoints(xyz, c_gt=None, c_pred=None, waittime=0, showrot=False, magnifyBl
 
 if __name__ == '__main__':
     import os
+    import glob
     import numpy as np
     import argparse
+    import glob
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='../data/shapenet', help='dataset path')
-    parser.add_argument('--category', type=str, default='Airplane', help='select category')
+    parser.add_argument('--category', type=str, default='airplane', help='select category (e.g., airplane, chair, car)')
     parser.add_argument('--npoints', type=int, default=2500, help='resample points number')
     parser.add_argument('--ballradius', type=int, default=10, help='ballradius')
     opt = parser.parse_args()
-    '''
-    Airplane	02691156
-    Bag	        02773838
-    Cap	        02954340
-    Car	        02958343
-    Chair	    03001627
-    Earphone	03261776
-    Guitar	    03467517
-    Knife	    03624134
-    Lamp	    03636649
-    Laptop	    03642806
-    Motorbike   03790512
-    Mug	        03797390
-    Pistol	    03948459
-    Rocket	    04099429
-    Skateboard  04225987
-    Table	    04379243'''
 
-    cmap = np.array([[1.00000000e+00, 0.00000000e+00, 0.00000000e+00],
-                     [3.12493437e-02, 1.00000000e+00, 1.31250131e-06],
-                     [0.00000000e+00, 6.25019688e-02, 1.00000000e+00],
-                     [1.00000000e+00, 0.00000000e+00, 9.37500000e-02],
-                     [1.00000000e+00, 0.00000000e+00, 9.37500000e-02],
-                     [1.00000000e+00, 0.00000000e+00, 9.37500000e-02],
-                     [1.00000000e+00, 0.00000000e+00, 9.37500000e-02],
-                     [1.00000000e+00, 0.00000000e+00, 9.37500000e-02],
-                     [1.00000000e+00, 0.00000000e+00, 9.37500000e-02],
-                     [1.00000000e+00, 0.00000000e+00, 9.37500000e-02]])
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     ROOT_DIR = os.path.dirname(BASE_DIR)
-    sys.path.append(BASE_DIR)
-    sys.path.append(os.path.join(ROOT_DIR, 'data_utils'))
 
-    from ShapeNetDataLoader import PartNormalDataset
-    root = '../data/shapenetcore_partanno_segmentation_benchmark_v0_normal/'
-    dataset = PartNormalDataset(root = root, npoints=2048, split='test', normal_channel=False)
-    idx = np.random.randint(0, len(dataset))
-    data = dataset[idx]
-    point_set, _, seg = data
+    # Load ModelNet40 data
+    category_dir = os.path.join(ROOT_DIR, 'data', 'modelnet40_normal_resampled', opt.category)
+    files = glob.glob(os.path.join(category_dir, '*.txt'))
+    if not files:
+        print(f"No files found for category '{opt.category}' in {category_dir}")
+        print(f"Available categories: {os.listdir(os.path.join(ROOT_DIR, 'data', 'modelnet40_normal_resampled'))}")
+        sys.exit(1)
+
+    # Pick a random file
+    filepath = np.random.choice(files)
+    print(f"Loading: {filepath}")
+
+    # Load point cloud (format: x,y,z,nx,ny,nz)
+    points = np.loadtxt(filepath, delimiter=',')
+    point_set = points[:, :3]  # XYZ only
+
+    # Resample to npoints
     choice = np.random.choice(point_set.shape[0], opt.npoints, replace=True)
-    point_set, seg = point_set[choice, :], seg[choice]
-    seg = seg - seg.min()
-    gt = cmap[seg, :]
-    pred = cmap[seg, :]
+    point_set = point_set[choice, :]
+
+    # Use single color (white/light blue)
+    gt = np.ones((len(point_set), 3)) * np.array([0.5, 0.7, 1.0])  # light blue
+    pred = gt.copy()
+
     showpoints(point_set, gt, c_pred=pred, waittime=0, showrot=False, magnifyBlue=0, freezerot=False,
                background=(255, 255, 255), normalizecolor=True, ballradius=opt.ballradius)
 

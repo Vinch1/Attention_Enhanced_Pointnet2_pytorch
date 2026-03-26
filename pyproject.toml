@@ -8,6 +8,9 @@ dependencies = [
     "torch>=2.0",
     "numpy",
     "tqdm",
+    "opencv-python>=4.13.0.92",
+    "pillow>=10.4.0",
+    "matplotlib>=3.7.5",
 ]
 
 [project.optional-dependencies]
