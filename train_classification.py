@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=1 if platform.system() == 'Darwin' else 2,
+        default=0 if platform.system() == 'Darwin' else 2,
         help='number of dataloader workers',
     )
     return parser.parse_args()
@@ -84,7 +84,7 @@ def test(model, loader, num_class=40, device=torch.device('cpu')):
         if device.type != 'cpu':
             points, target = points.to(device), target.to(device)
 
-        points = points.transpose(2, 1)
+        points = points.transpose(2, 1).contiguous()
         pred, _ = classifier(points)
         pred_choice = pred.data.max(1)[1]
 
