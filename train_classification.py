@@ -184,19 +184,6 @@ def main(args):
         classifier = classifier.to(device)
         criterion = criterion.to(device)
 
-    try:
-        checkpoint = torch.load(str(exp_dir) + '/checkpoints/best_model.pth', weights_only=False)
-        start_epoch = checkpoint['epoch']
-        classifier.load_state_dict(checkpoint['model_state_dict'])
-        log_string(f'Use pretrain model from epoch {start_epoch}')
-    except FileNotFoundError:
-        log_string('No existing model, starting training from scratch...')
-        start_epoch = 0
-    except Exception as e:
-        log_string(f'Error loading checkpoint: {type(e).__name__}: {e}')
-        log_string('Starting training from scratch...')
-        start_epoch = 0
-
     if args.optimizer == 'Adam':
         optimizer = torch.optim.Adam(
             classifier.parameters(),
@@ -213,6 +200,26 @@ def main(args):
     global_step = 0
     best_instance_acc = 0.0
     best_class_acc = 0.0
+
+    try:
+        checkpoint = torch.load(str(exp_dir) + '/checkpoints/best_model.pth', weights_only=False)
+        start_epoch = checkpoint['epoch']
+        classifier.load_state_dict(checkpoint['model_state_dict'])
+        if 'optimizer_state_dict' in checkpoint:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if 'instance_acc' in checkpoint:
+            best_instance_acc = checkpoint['instance_acc']
+        if 'class_acc' in checkpoint:
+            best_class_acc = checkpoint['class_acc']
+        log_string(f'Use pretrain model from epoch {start_epoch}')
+        log_string(f'Best Instance Accuracy: {best_instance_acc:.4f}, Class Accuracy: {best_class_acc:.4f}')
+    except FileNotFoundError:
+        log_string('No existing model, starting training from scratch...')
+        start_epoch = 0
+    except Exception as e:
+        log_string(f'Error loading checkpoint: {type(e).__name__}: {e}')
+        log_string('Starting training from scratch...')
+        start_epoch = 0
 
     '''TRANING'''
     logger.info('Start training...')
