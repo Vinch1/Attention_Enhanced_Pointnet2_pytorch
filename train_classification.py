@@ -3,20 +3,20 @@ Author: Benny
 Date: Nov 2019
 """
 
-import os
-import sys
-import torch
-import numpy as np
-import platform
-
-import datetime
-import logging
-import importlib
-import shutil
 import argparse
-
+import datetime
+import importlib
+import logging
+import os
+import platform
+import shutil
+import sys
 from pathlib import Path
+
+import numpy as np
+import torch
 from tqdm import tqdm
+
 from data_utils.ModelNetDataLoader import ModelNetDataLoader
 from device_utils import get_device, get_device_name
 
@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=0 if platform.system() == 'Darwin' else 2,
+        default=1 if platform.system() == 'Darwin' else 2,
         help='number of dataloader workers',
     )
     return parser.parse_args()
