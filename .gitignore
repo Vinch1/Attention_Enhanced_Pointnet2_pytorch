@@ -98,7 +98,7 @@ venv.bak/
 
 # Local datasets and large training artifacts
 3D MNIST/*.h5
-log/classification/**/checkpoints/*.pth
+
 
 # Spyder project settings
 .spyderproject
