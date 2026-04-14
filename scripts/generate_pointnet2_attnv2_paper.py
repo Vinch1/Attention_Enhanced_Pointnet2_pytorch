@@ -17,13 +17,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 try:
     from docx import Document
     from docx.enum.section import WD_SECTION_START
-    from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
+    from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
@@ -237,8 +236,8 @@ def save_timeline_figure(path: Path) -> None:
     stages = [
         (1.2, "master", "Upstream\nbaseline", "#12304B", "eb64fe0"),
         (3.4, "feat/apple_silicon", "MPS safety,\nSE, early attn", "#1D6FD6", "2284629 -> 3a536bf"),
-        (5.9, "codex/pointnet2-attn-v2-mac-safe", "Masked hybrid\nattention repair", "#0F9960", "170cabf"),
-        (8.4, "codex/3dmnist-attnv2-training", "3D MNIST +\nstructured logging", "#7A4CC2", "c51fe93 -> HEAD"),
+        (5.9, "pointnet2-attn-v2-mac-safe", "Masked hybrid\nattention repair", "#0F9960", "170cabf"),
+        (8.4, "3dmnist-attnv2-training", "3D MNIST +\nstructured logging", "#7A4CC2", "c51fe93 -> HEAD"),
     ]
     for x, label, subtitle, color, commit in stages:
         ax.scatter([x], [1.5], s=620, color=color, edgecolor="white", linewidth=2.5, zorder=2)
@@ -263,58 +262,62 @@ def save_timeline_figure(path: Path) -> None:
 
 def save_repair_figure(path: Path) -> None:
     set_matplotlib_defaults()
-    fig, ax = plt.subplots(figsize=(12.5, 7.4), dpi=220)
-    ax.set_xlim(0, 12)
-    ax.set_ylim(0, 10)
+    fig, ax = plt.subplots(figsize=(11.6, 7.2), dpi=220)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
     ax.axis("off")
-    ax.text(1.1, 9.35, "Attention v1 failure modes", fontsize=16, fontweight="bold", color="#A8442B")
-    ax.text(7.1, 9.35, "Attention v2 repair actions", fontsize=16, fontweight="bold", color="#0F6D4B")
+    ax.text(0.22, 0.94, "Attention v1 failure modes", fontsize=15, fontweight="bold", color="#A8442B", ha="center", transform=ax.transAxes)
+    ax.text(0.78, 0.94, "Attention v2 repair actions", fontsize=15, fontweight="bold", color="#0F6D4B", ha="center", transform=ax.transAxes)
     failures = [
-        ("Padding bias", "query_ball_point duplicates the first valid neighbor, which is harmless for max pooling but distorts softmax attention."),
-        ("Over-compressed tokens", "Each hierarchy is reduced to a single mean token before fusion, limiting what multi-head attention can preserve."),
-        ("Weak classifier", "The post-fusion head behaves almost linearly, so richer features cannot be exploited effectively."),
-        ("MPS fragility", "Boolean writes, -inf masking, and non-contiguous permutations are more error-prone on Apple Silicon."),
+        ("Padding bias", "Duplicated padded neighbors are harmless for max pooling but distort softmax attention by absorbing real probability mass."),
+        ("Over-compressed tokens", "Reducing each hierarchy to one mean token discards too much multi-scale structure before fusion."),
+        ("Weak classifier", "The fusion output is sent to an almost linear head, which limits nonlinear class separation."),
+        ("MPS fragility", "Index writes, infinite masking values, and layout assumptions are more brittle on Apple Silicon."),
     ]
     repairs = [
-        ("Explicit masks", "query_ball_point_with_mask returns valid indices plus a mask so softmax normalizes only over real neighbors."),
-        ("Hybrid pooling", "Attention pooling is fused with a max-pooling residual path to preserve PointNet++ robustness while adding learnable weighting."),
-        ("Richer fusion", "CrossLevelAttentionV2 uses mean and max summaries, a CLS token, and a direct residual from the global l3 descriptor."),
-        ("Numerical safeguards", "torch.where masking, finite negative fills, nan_to_num, clamped indices, and contiguous tensors stabilize MPS execution."),
+        ("Explicit masks", "Attention is normalized only over real neighbors, while padded slots are kept only for safe indexing."),
+        ("Hybrid pooling", "Attention pooling is fused with a max-pooling residual path to preserve PointNet++ robustness."),
+        ("Richer fusion", "Mean and max summaries, a CLS token, and a global residual preserve more cross-level signal."),
+        ("Numerical safeguards", "Finite masking values, nan cleanup, clamped indices, and contiguous tensors stabilize execution."),
     ]
-    y_positions = [7.5, 5.7, 3.9, 2.1]
+    y_positions = [0.70, 0.49, 0.28, 0.07]
     for (left_title, left_body), (right_title, right_body), y in zip(failures, repairs, y_positions):
         left_box = FancyBboxPatch(
-            (0.8, y),
-            4.2,
-            1.3,
+            (0.08, y),
+            0.23,
+            0.15,
             boxstyle="round,pad=0.04,rounding_size=0.08",
             linewidth=1.1,
             edgecolor="#E6C3B8",
             facecolor="#FFF6F2",
+            transform=ax.transAxes,
         )
         right_box = FancyBboxPatch(
-            (7.0, y),
-            4.2,
-            1.3,
+            (0.69, y),
+            0.23,
+            0.15,
             boxstyle="round,pad=0.04,rounding_size=0.08",
             linewidth=1.1,
             edgecolor="#B7D9C9",
             facecolor="#F3FBF7",
+            transform=ax.transAxes,
         )
         ax.add_patch(left_box)
         ax.add_patch(right_box)
-        ax.text(1.05, y + 0.92, left_title, fontsize=12.3, fontweight="bold", color="#A8442B")
-        ax.text(1.05, y + 0.55, textwrap.fill(left_body, width=42), fontsize=9.0, color="#4C5661", va="center")
-        ax.text(7.25, y + 0.92, right_title, fontsize=12.3, fontweight="bold", color="#0F6D4B")
-        ax.text(7.25, y + 0.55, textwrap.fill(right_body, width=43), fontsize=9.0, color="#4C5661", va="center")
-        arrow = FancyArrowPatch((5.2, y + 0.65), (6.8, y + 0.65), arrowstyle="simple", mutation_scale=16, color="#9BB7D0")
+        ax.text(0.105, y + 0.112, textwrap.fill(left_title, width=18), fontsize=11.2, fontweight="bold", color="#A8442B", transform=ax.transAxes)
+        ax.text(0.105, y + 0.035, textwrap.fill(left_body, width=24), fontsize=8.8, color="#4C5661", va="center", transform=ax.transAxes)
+        ax.text(0.715, y + 0.112, textwrap.fill(right_title, width=18), fontsize=11.2, fontweight="bold", color="#0F6D4B", transform=ax.transAxes)
+        ax.text(0.715, y + 0.035, textwrap.fill(right_body, width=24), fontsize=8.8, color="#4C5661", va="center", transform=ax.transAxes)
+        arrow = FancyArrowPatch((0.37, y + 0.075), (0.63, y + 0.075), arrowstyle="simple", mutation_scale=18, color="#9BB7D0", transform=ax.transAxes)
         ax.add_patch(arrow)
     ax.text(
-        0.82,
-        0.65,
+        0.5,
+        0.03,
         "The key methodological contribution is not attention alone, but the diagnosis-and-repair loop that made the attention stack compatible with PointNet++ grouping semantics and MPS execution.",
         fontsize=10.3,
         color="#425466",
+        ha="center",
+        transform=ax.transAxes,
     )
     fig.tight_layout()
     fig.savefig(path, bbox_inches="tight")
@@ -533,7 +536,7 @@ def add_title_block(document: Document) -> None:
 
     meta = document.add_paragraph()
     meta.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = meta.add_run("Prepared from inspected repository state on April 14, 2026")
+    run = meta.add_run("Prepared on April 14, 2026")
     run.font.name = "Times New Roman"
     run.font.size = Pt(10.5)
     run.font.color.rgb = RGBColor.from_string("5B6B7A")
@@ -616,6 +619,7 @@ def add_table(document: Document, title: str, headers: list[str], rows: list[lis
 
 def add_figure(document: Document, title: str, path: Path, width: float = 6.0) -> None:
     document.add_picture(str(path), width=Inches(width))
+    document.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
     caption = document.add_paragraph()
     caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = caption.add_run(title)
@@ -645,7 +649,7 @@ def build_tables(
     stats: dict[str, dict[str, object]],
 ) -> dict[str, list[list[str]]]:
     branch_rows = [
-        ["master", "Upstream repository", "Reference PointNet / PointNet++ implementation and published README benchmarks."],
+        ["master", "Upstream baseline", "Reference PointNet / PointNet++ implementation and published README benchmarks."],
         ["feat/apple_silicon", "Platform hardening", "MPS-safe indexing, Apple Silicon training stability, SE exploration, and early attention trials."],
         ["codex/pointnet2-attn-v2-mac-safe", "Mechanism repair", "Masked local attention, hybrid pooling, stronger cross-level fusion, and the corrected ModelNet40 run."],
         ["codex/3dmnist-attnv2-training", "Cross-dataset validation", "3D MNIST dataloader integration plus run_config.json, metrics.csv, and summary.json artifacts."],
@@ -766,12 +770,12 @@ def create_document(
     add_title_block(document)
 
     abstract = (
-        "This paper reconstructs an end-to-end research cycle around attention-enhanced PointNet++ "
-        "classification by inspecting the repository code, experiment logs, and run artifacts directly. "
-        "The study begins from the upstream PointNet++ single-scale grouping baseline, then follows three "
+        "This paper studies how attention should be introduced into PointNet++ classification without "
+        "breaking the local invariances and numerical robustness that make the original architecture effective. "
+        "The study begins from the PointNet++ single-scale grouping baseline, then follows three "
         "architectural branches: channel recalibration with Squeeze-and-Excitation (SE), an initial "
         "attention design that underperforms, and a repaired attention-v2 model that corrects the observed "
-        "failure modes. The central diagnosis is that PointNet++ neighborhood padding is benign for max "
+        "failure modes. The central principle is that PointNet++ neighborhood padding is benign for max "
         "pooling but mathematically inconsistent with naive softmax attention, because duplicated padding "
         "points absorb real probability mass. Attention-v2 addresses that mismatch with explicit neighbor "
         "validity masks, hybrid attention-plus-max pooling, richer cross-level tokenization, and a stronger "
@@ -795,38 +799,38 @@ def create_document(
         document,
         [
             "Deep learning on point sets must reconcile three constraints at once: permutation invariance, local geometric structure, and computational stability. PointNet established a strong permutation-invariant baseline by combining shared pointwise multilayer perceptrons with a global symmetric max operator [1]. PointNet++ extended that idea with hierarchical set abstraction, radius-based grouping, and local feature aggregation, which remains one of the most durable design templates for point cloud classification [2].",
-            "The repository inspected in this study starts from the upstream PointNet++ single-scale grouping classifier implemented in models/pointnet2_cls_ssg.py. Two goals then shaped the subsequent engineering and modeling work. The first goal was infrastructural: the original code had to become reliable on Apple Silicon and Metal Performance Shaders so that later model comparisons were not confounded by platform-specific instability. The second goal was architectural: attention-like modifications were evaluated to determine whether they could improve the classifier without abandoning the local inductive biases that make PointNet++ effective.",
-            "Rather than narrating the project as a clean monotonic gain, this paper preserves the full research cycle. A channel-attention variant improved class balance without winning on instance accuracy. A first attention model underperformed because of concrete implementation and design mismatches. A second attention model repaired those issues and recovered most of the lost performance. That trajectory is valuable because it exposes which attention ideas survive contact with PointNet++ neighborhood semantics and which do not.",
+            "The central question in this paper is not whether attention is fashionable, but whether it is principled in the specific context of PointNet++. PointNet++ relies on fixed-size local groups and max pooling because those choices are robust to irregular neighborhood density and missing neighbors. Any attention mechanism that replaces or augments that path therefore has to preserve two properties at once: it must remain faithful to the real set of neighbors, and it must not destabilize the strong local aggregation bias that already works well.",
+            "Two design goals follow from that reasoning. The first is infrastructural: the implementation must remain stable on Apple Silicon and Metal Performance Shaders so that masking, indexing, and pooling behavior do not introduce accidental regressions. The second is architectural: attention should only be retained when it improves the representation for a principled reason, such as better weighting of valid neighbors or better preservation of multi-scale information. This is why the paper treats the full path from baseline to attention v1 to attention v2 as a methodological argument rather than as a sequence of ad hoc model variants.",
         ],
     )
     add_bullet_list(
         document,
         [
-            "A code-backed diagnosis of why naive local softmax attention is incompatible with PointNet++ duplicate-neighbor padding.",
+            "A principled diagnosis of why naive local softmax attention is incompatible with PointNet++ duplicate-neighbor padding.",
             "A repaired attention-v2 architecture with explicit neighbor masks, hybrid local pooling, richer cross-level tokenization, and a stronger classifier head.",
             "A platform-aware training pipeline for Apple Silicon, plus dataset-aware logging that turns one-off runs into reusable experiment artifacts.",
             "A balanced evaluation across ModelNet40 and 3D MNIST showing stronger class balance and modest cross-dataset gains, but no decisive ModelNet40 top-line win.",
         ],
     )
 
-    document.add_heading("2. Repository Context and Related Work", level=1)
+    document.add_heading("2. Design Motivation and Related Work", level=1)
     add_paragraphs(
         document,
         [
             "Within point cloud learning, PointNet [1] and PointNet++ [2] provide the direct architectural lineage for this work. PointCNN and PointConv explored learnable local operators that more explicitly model neighborhood structure [6, 7], while Dynamic Graph CNN emphasized dynamically updated local graphs for feature extraction [4]. Those families show that gains often emerge from better local aggregation rather than from replacing permutation invariance outright.",
             "Attention mechanisms entered this space through both general permutation-invariant architectures and point-cloud-specific transformers. Set Transformer showed that attention can be used as a principled pooling and set-processing primitive [5], while transformer-based point models such as Point Transformer applied self-attention to 3D neighborhoods more directly [8]. At the same time, Squeeze-and-Excitation networks demonstrated that lightweight channel recalibration can improve representation quality without redesigning the full backbone [3].",
-            "The current work occupies a narrower but practically important position. It is not a new state-of-the-art point cloud architecture, nor is it a general survey of transformer methods. Instead, it is a repository-grounded case study that asks whether attention can be inserted into a strong PointNet++ SSG baseline in a way that remains faithful to the original local grouping pipeline, robust on Apple Silicon, and honest about performance tradeoffs. The broader literature on realistic point cloud benchmarks, including ScanObjectNN [9], motivates the decision to treat 3D MNIST as a useful secondary validation rather than a definitive generalization benchmark.",
+            "The current work occupies a narrower but practically important position. It is not a new state-of-the-art point cloud architecture, nor is it a general survey of transformer methods. Instead, it asks a focused design question: when should attention replace max pooling, and when should it cooperate with max pooling instead? The broader literature on realistic point cloud benchmarks, including ScanObjectNN [9], motivates the decision to treat 3D MNIST as a useful secondary validation rather than a definitive generalization benchmark.",
         ],
     )
     add_table(
         document,
-        "Table 1. Repository evolution and experimental branch roles.",
+        "Table 1. Project evolution and experimental branch roles.",
         ["Branch", "Role", "Main contribution"],
         tables["branches"],
     )
     add_figure(
         document,
-        "Figure 1. The repository evolves from the upstream baseline through Apple Silicon hardening, attention-v2 repair, and cross-dataset logging support.",
+        "Figure 1. The project evolves from the upstream baseline through Apple Silicon hardening, attention-v2 repair, and cross-dataset logging support.",
         figures["timeline"],
     )
 
@@ -836,7 +840,7 @@ def create_document(
         document,
         [
             "The baseline classifier follows the standard PointNet++ single-scale grouping design. It applies three set abstraction stages: SA1 samples 512 centroids with radius 0.2 and 32 neighbors, SA2 samples 128 centroids with radius 0.4 and 64 neighbors, and SA3 performs global aggregation into a 1024-dimensional descriptor. The classifier head maps 1024 -> 512 -> 256 -> num_class with ReLU, batch normalization, and dropout. This baseline is both historically grounded and locally strong, which raises the bar for any augmentation.",
-            "Crucially, the local aggregation in this baseline is max pooling. That operator is robust to duplicated neighbors because repeating a value does not change the maximum. The entire attention investigation in this repository effectively revolves around the question of how much expressive attention can be added without losing that robustness.",
+            "Crucially, the local aggregation in this baseline is max pooling. That operator is robust to duplicated neighbors because repeating a value does not change the maximum. The core design problem for the rest of the paper is therefore not simply how to add attention, but how to add it without discarding the robustness that max pooling already gives for free.",
         ],
     )
     document.add_heading("3.2 SE and Attention v1", level=2)
@@ -871,7 +875,7 @@ def create_document(
     )
     add_table(
         document,
-        "Table 2. Architectural comparison across the four inspected classifiers.",
+        "Table 2. Architectural comparison across the four studied classifiers.",
         ["Model", "Local aggregation", "Channel attention", "Cross-level fusion", "Classifier head", "Parameters"],
         tables["architecture"],
     )
@@ -880,15 +884,15 @@ def create_document(
     add_paragraphs(
         document,
         [
-            "Engineering support is a first-class contribution in this repository. device_utils.py adds automatic device selection across MPS, CUDA, and CPU. models/pointnet2_utils.py adds MPS-safe index clamping, torch.where-based masking in place of boolean assignment, and contiguous permutations. Attention v2 adds further protections such as finite large-negative masking values instead of -inf and torch.nan_to_num after multi-head attention. These changes are especially important on Apple Silicon, where indexing and masking behavior is less forgiving than on CUDA.",
-            "The training pipeline was upgraded so that experiments now preserve their own provenance. train_classification.py writes run_config.json, metrics.csv, and summary.json, copies the exact model and loader files used during training, and supports both ModelNet and 3D MNIST through a common interface. test_classification.py reads run_config.json automatically, which reduces configuration drift at evaluation time.",
+            "Engineering support is a first-class part of the argument because attention is only meaningful if the execution path is stable. device_utils.py adds automatic device selection across MPS, CUDA, and CPU. models/pointnet2_utils.py adds MPS-safe index clamping, torch.where-based masking in place of boolean assignment, and contiguous permutations. Attention v2 adds further protections such as finite large-negative masking values instead of -inf and torch.nan_to_num after multi-head attention. These changes are especially important on Apple Silicon, where indexing and masking behavior is less forgiving than on CUDA.",
+            "The training pipeline was upgraded so that experiments preserve their own provenance. train_classification.py writes run_config.json, metrics.csv, and summary.json, copies the exact model and loader files used during training, and supports both ModelNet and 3D MNIST through a common interface. test_classification.py reads run_config.json automatically, which reduces configuration drift at evaluation time.",
             "ModelNet40 remains the primary benchmark because it is the dataset most directly tied to the PointNet++ literature [2]. However, the older ModelNet40 branches still record results mainly in text logs, and the batch size was not fully controlled across all four variants: the baseline and attention v1 use batch size 24, while SE and attention v2 use batch size 16. This does not invalidate the comparison, but it does weaken any claim that the ModelNet40 ranking is perfectly controlled.",
-            "3D MNIST was integrated as a second classification dataset with HDF5-backed train and test splits. The local copy contains 5,000 training samples and 1,000 test samples across 10 classes. Point counts vary substantially before subsampling, so the dataset also serves as a useful stress test for the new dataloader and for the repository's point sampling and normalization path. For HDF5 safety on macOS, effective dataloader workers are forced to zero during these runs.",
+            "3D MNIST was integrated as a second classification dataset with HDF5-backed train and test splits. The local copy contains 5,000 training samples and 1,000 test samples across 10 classes. Point counts vary substantially before subsampling, so the dataset also serves as a useful stress test for the dataloader and for the point sampling and normalization path. For HDF5 safety on macOS, effective dataloader workers are forced to zero during these runs.",
         ],
     )
     add_table(
         document,
-        "Table 3. Local 3D MNIST dataset characteristics after inspection of the HDF5 artifacts.",
+        "Table 3. Local 3D MNIST dataset characteristics from the HDF5 train and test splits.",
         ["Split", "Samples", "Point-count range", "Mean raw points", "Classes"],
         tables["dataset"],
     )
@@ -905,7 +909,7 @@ def create_document(
         [
             f"The strongest local baseline reaches {pct(modelnet['baseline']['best_instance'])} instance accuracy and {pct(modelnet['baseline']['best_class'])} class accuracy. SE trades a small instance-accuracy drop for a class-accuracy gain, which is consistent with channel recalibration helping balance predictions. Attention v1 performs substantially worse, confirming that its issues are material rather than cosmetic.",
             f"Attention v2 recovers much of that damage. Relative to attention v1, it gains {(modelnet['attn_v2']['best_instance'] - modelnet['attn_v1']['best_instance']) * 100:.3f} instance points and {(modelnet['attn_v2']['best_class'] - modelnet['attn_v1']['best_class']) * 100:.3f} class-accuracy points. Relative to the strongest baseline, however, it remains {(modelnet['baseline']['best_instance'] - modelnet['attn_v2']['best_instance']) * 100:.3f} points lower on the main top-line metric even while exceeding the baseline by {(modelnet['attn_v2']['best_class'] - modelnet['baseline']['best_class']) * 100:.3f} class-accuracy points.",
-            "This pattern matters. It suggests that the repaired attention design improves class balance more consistently than raw sample-level accuracy. In other words, attention v2 is not simply a failed variant; it changes the model's behavior in a measurable and partly desirable direction, but not enough to displace a strong PointNet++ SSG baseline on the primary benchmark.",
+            "This pattern matters because it clarifies what the repaired attention is actually buying. The gain is not a universal improvement in top-line accuracy; instead, the model appears to redistribute representational capacity toward more balanced class behavior. That is a principled outcome for a mechanism designed to weight valid neighbors and preserve cross-level context, even if it is not yet enough to displace a strong PointNet++ SSG baseline on the primary benchmark.",
         ],
     )
     add_table(
@@ -929,7 +933,7 @@ def create_document(
     add_paragraphs(
         document,
         [
-            f"3D MNIST provides the cleanest head-to-head comparison in the repository because the baseline and attention-v2 runs share the same batch size, epoch count, optimizer, learning rate, weight decay, point count, and device. Under that matched setup, attention v2 achieves {pct(attn_summary['best_instance_acc'])} best instance accuracy and {pct(attn_summary['best_class_acc'])} best class accuracy, slightly exceeding the baseline values of {pct(baseline_summary['best_instance_acc'])} and {pct(baseline_summary['best_class_acc'])}, respectively.",
+            f"3D MNIST provides the cleanest head-to-head comparison in this study because the baseline and attention-v2 runs share the same batch size, epoch count, optimizer, learning rate, weight decay, point count, and device. Under that matched setup, attention v2 achieves {pct(attn_summary['best_instance_acc'])} best instance accuracy and {pct(attn_summary['best_class_acc'])} best class accuracy, slightly exceeding the baseline values of {pct(baseline_summary['best_instance_acc'])} and {pct(baseline_summary['best_class_acc'])}, respectively.",
             "The convergence curves are informative. The baseline learns much faster in the first few epochs, which is expected for a simpler architecture with fewer parameters. Attention v2 starts slowly, then catches up and eventually produces stronger best metrics later in training. This delayed payoff is consistent with attention v2 being a higher-capacity model that needs longer to stabilize, but which can eventually refine class balance more effectively once optimization catches up.",
             "The gain is modest and should not be overstated. 3D MNIST is simpler than realistic object benchmarks and is not a canonical PointNet++ dataset. Still, the result matters because it shows that the repaired attention design is not inherently broken; under a matched setup on a second dataset, it can edge out the baseline.",
         ],
@@ -964,7 +968,7 @@ def create_document(
         [
             "The final model's strongest contribution is methodological rather than purely numerical. It identifies a subtle but consequential incompatibility between PointNet++ neighborhood padding and naive softmax attention, then fixes that incompatibility with an explicit mask path. That diagnosis is portable: any point-cloud pipeline that mixes fixed-size neighborhood tensors with softmax-based local pooling should be audited for the same issue.",
             f"The main drawback is efficiency. Attention v2 contains {params['attn_v2']:,} parameters, or {(params['attn_v2'] - params['baseline']) / params['baseline'] * 100:.2f}% more than the baseline. The single largest block is {largest_name}, which alone contains {largest_size:,} parameters. This confirms that the current design should be treated as an accuracy-oriented prototype rather than an optimized deployment model.",
-            "The results also show the limits of local improvements in a mature architecture family. A strong PointNet++ implementation already exceeds the original paper's XYZ-only number, so the challenge is not merely to beat the 2017 benchmark but to beat the repository's own retrained baseline. Within that harder comparison, attention v2 improves class balance and rescues the failed attention branch, but it does not earn a clear replacement case on ModelNet40.",
+            "The results also show the limits of local improvements in a mature architecture family. A strong PointNet++ implementation already exceeds the original paper's XYZ-only number, so the challenge is not merely to beat the 2017 benchmark but to beat a strong retrained baseline. Within that harder comparison, attention v2 improves class balance and rescues the failed attention branch, but it does not earn a clear replacement case on ModelNet40.",
         ],
     )
     document.add_heading("7. Limitations and Threats to Validity", level=1)
@@ -981,7 +985,7 @@ def create_document(
     add_paragraphs(
         document,
         [
-            "This repository-level study shows that attention can improve a PointNet++ SSG classifier only when the surrounding assumptions are repaired as carefully as the attention block itself. Attention v1 fails because it violates the semantics of padded neighborhoods and compresses too much information before fusion. Attention v2 succeeds in fixing those issues with explicit masking, hybrid pooling, richer tokenization, and a stronger classifier, while also making the implementation safe on Apple Silicon.",
+            "This study shows that attention can improve a PointNet++ SSG classifier only when the surrounding assumptions are repaired as carefully as the attention block itself. Attention v1 fails because it violates the semantics of padded neighborhoods and compresses too much information before fusion. Attention v2 succeeds in fixing those issues with explicit masking, hybrid pooling, richer tokenization, and a stronger classifier, while also making the implementation safe on Apple Silicon.",
             f"The repaired model is clearly better than attention v1, reaches {pct(attn_summary['best_instance_acc'])} / {pct(attn_summary['best_class_acc'])} on 3D MNIST, and improves ModelNet40 class accuracy relative to the baseline. Yet the baseline still holds the best ModelNet40 instance accuracy at {pct(modelnet['baseline']['best_instance'])}, and it does so with far fewer parameters. The most defensible conclusion is therefore balanced: the attention redesign is technically worthwhile and empirically credible, but it is not yet the best default replacement for PointNet++ SSG on the primary benchmark.",
         ],
     )
@@ -1038,7 +1042,7 @@ def main() -> None:
     core_props.title = "Repairing Attention for PointNet++ Classification"
     core_props.subject = "Single-column technical paper"
     core_props.keywords = "point cloud, PointNet++, attention, MPS, 3D MNIST"
-    core_props.comments = "Generated from inspected repository artifacts."
+    core_props.comments = "Generated from code and experiment artifacts."
     document.save(DOCX_PATH)
 
     print(f"Wrote {DOCX_PATH}")
