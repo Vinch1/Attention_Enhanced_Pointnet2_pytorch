@@ -4,7 +4,7 @@
 Today I will present my PointNet++ attention enhancement project. The core question behind this work was whether attention-based modifications could improve PointNet++ single-scale grouping classification, on two datasets.
 
 ## Slide 2 - Project Scope
-The project one goal. That is architectural exploration. I wanted to see whether channel attention, local attention pooling, and cross-level fusion could improve PointNet++ classification behavior.
+The project has one goal. That is architectural exploration. I wanted to see whether channel attention, local attention pooling, and cross-level fusion could improve PointNet++ classification behavior.
 
 ## Slide 3 - Baseline Method
 The baseline model is the PointNet++ SSG classifier. It uses three set abstraction stages to move from local neighborhoods to a global feature, and then classifies from a 1024-dimensional descriptor. This baseline is already strong, even have stronger number than the original paper.
@@ -37,7 +37,7 @@ To verify the method on another dataset, we integrated 3D MNIST. This dataset wa
 On 3D MNIST, the baseline achieved 98.611 percent instance accuracy and 98.623 percent class accuracy. Attention-v2 slightly outperformed it with 98.710 percent instance accuracy and 98.939 percent class accuracy. The gain is small, but it is consistent and appears more clearly in class accuracy. The convergence curves also show that the baseline learns faster early, while attention-v2 improves more gradually and ends slightly higher.
 
 ## Slide 13 - Drawbacks and Future Work
-The main limitation is that attention-v2 does not beat the strongest baseline on ModelNet40 instance accuracy. The second limitation is efficiency. Attention-v2 is much larger than the baseline. There is also no full ablation study and no multi-seed evaluation. Finally, while 3D MNIST is a valid second classification dataset, it is not as strong a realism benchmark as ScanObjectNN. The most valuable next steps would be controlled same-batch-size reruns, lighter attention-v2 blocks, full ablation, and evaluation on a stronger second dataset.
+The main limitation is that attention-v2 does not beat the strongest baseline on ModelNet40 instance accuracy. The second limitation is efficiency. Attention-v2 is much larger than the baseline.  Finally, while 3D MNIST is a valid second classification dataset, it is not as strong a realism benchmark as ScanObjectNN. The most valuable next steps would be controlled same-batch-size reruns, lighter attention-v2 blocks, full ablation, and evaluation on a stronger second dataset.
 
 ## Slide 14 - Final Conclusion
-The project produced a stable Apple Silicon training pipeline, a corrected attention architecture, and a reusable cross-dataset evaluation workflow. The scientific result is honest and balanced. Attention-v2 is clearly better than attention-v1 and shows some promise on a second dataset, but it does not replace the strong PointNet++ SSG baseline on ModelNet40. That balance gives us a credible presentation story built around design, diagnosis, evidence, and limitations.
+The project produced a stable Apple Silicon training pipeline, a corrected attention architecture, and a reusable cross-dataset evaluation workflow. The scientific result is balanced. Attention-v2 is clearly better than attention-v1 and shows some promise on a second dataset, but it does not replace the strong PointNet++ SSG baseline on ModelNet40. That balance gives us a credible presentation story built around design, diagnosis, evidence, and limitations.
